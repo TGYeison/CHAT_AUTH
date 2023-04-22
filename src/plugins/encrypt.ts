@@ -5,3 +5,8 @@ export const encryptPass = async (pass: string) => {
 
     return bcrypt.hash(pass, salt);
 }
+
+export const convertToJson = (res: any[]) => {
+    const stringfy = JSON.stringify(res);
+    return JSON.parse(stringfy);
+}
