@@ -1,12 +1,13 @@
 import { Router } from "express";
 
-import { LogIn, SingIn } from "../controllers/auth.controllers";
+import { LogIn, SingIn, AuthVerify } from "../controllers/auth.controllers";
 
 
 const routes = Router();
 
 routes.post('/auth/login', LogIn);
 routes.post('/auth/singin', SingIn);
+routes.post('/auth/verify', AuthVerify);
 
 
 export default routes;
