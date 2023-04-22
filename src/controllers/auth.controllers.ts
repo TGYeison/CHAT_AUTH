@@ -1,24 +1,99 @@
-import { Pool } from 'pg';
+import { pool } from "../database";
 
-const pool = new Pool({
-    host: 'localhost',
-    user: 'postgres',
-    password: '1q2w3e$R',
-    database: 'chatauth',
-    port: 5432
-});
+import jwt from 'jsonwebtoken';
 
+import { secret } from "../config";
+import { convertToJson } from "../plugins/encrypt";
+
+
+export const SingUp = async(req:any, res:any) => {
+    const { name, username, password} = req.body;
+
+    await pool.query(
+        'INSERT INTO users (name, username, password, role) values ($1, $2, $3, $4) RETURNING *', 
+        [name, username, password, 1],
+        (errors, results) => {
+            if (errors) {
+                throw errors;
+            }
+
+            const newUser = convertToJson(results.rows)[0];
+
+            const token = jwt.sign({id: newUser.id}, secret, {
+                expiresIn: 60 * 60 * 24
+            })
+
+            res.status(201).json({auth: true, token});
+        }
+    );
+}
 
 export const SingIn = async(req:any, res:any) => {
-    const response = await pool.query('SELECT * FROM users WHERE role = 1');
+    const { username, password } = req.body;
 
-    res.status(200).json(response.rows)
+    await pool.query(
+        'SELECT * FROM users WHERE username = $1', 
+        [ username ],
+        (error, results) => {
+            if (error) {
+                res.status(409);
+            }
+           
+            const user = convertToJson(results.rows);
+
+            if(user.lenght === 0) {
+                res.status(404).json({
+                    auth: false,
+                    message: 'user not found'
+                });
+            }
+
+            if(password !== user[0].password) {
+                res.status(401).json({
+                   auth: false,
+                   message: 'Password is incorrect' 
+                });
+            }
+
+            const token = jwt.sign({id: user[0].id}, secret, {
+                expiresIn: 60 * 60 * 24
+            });
+
+            res.status(200).json({auth: true, token});
+        }
+    )
+
 }
 
-export const LogIn = (req:any, res:any) => {
+export const AuthVerify = async(req:any, res:any) => {
+    const token = req.headers['x-access-token'];
 
-}
+    if (!token) {
+        return res.status(401).json({
+            auth: false,
+            message: 'No token provided'
+        });
+    } 
 
-export const AuthVerify = (req:any, res:any) => {
+    const decode:any = jwt.verify(token, secret);
 
+    await pool.query(
+        'SELECT * FROM users WHERE id = $1', 
+        [decode.id], 
+        (error, results) => {
+            if (error) {
+                res.status(409);
+            }
+
+            const user = convertToJson(results.rows);
+            if(user.lenght == 0) {
+                res.status(404);
+            }
+
+            res.status(200).json({
+                auth: true,
+                id: user[0].id
+            });
+        }
+    )
 }
