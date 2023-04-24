@@ -1,6 +1,9 @@
 # CHAT_AUTH
 Esta api se encarga de la autenticacion de los usuarios
 
+## Prerequisites
+tener instalado motor de bases de datos postgressql
+
 ## Intall
 
 ### Base de datos
